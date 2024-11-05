@@ -7,7 +7,3 @@ This repository contains the main workflows generated for identifying recombinat
 - [Variant filtering](Snakepit/Variant_filtering/)
 - [Pedigree approach](Snakepit/Pedigree_approach/)
 - [Family approach](Snakepit/Family_approach/)
-
-#### Relevant repositories
-
-- [Computational host range prediction](https://github.com/PfeiferLab/host_range_prediction)
