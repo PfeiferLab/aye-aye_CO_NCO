@@ -1,0 +1,15 @@
+resources:
+  raw_variants: '/path/to/file_folder/'
+  filters: '/path/to/file_folder/'
+  samples_fams:
+    - Sample1
+    - Sample2
+  families: # The order will determine the VCF file
+    Sample1: 'mother,father,templateoffspring,offspring2,offspring3'
+    Sample2: 'mother,father,templateoffspring,offspring2,offspring3,offspring4'
+  phases: ["mat", "pat"]
+  ref_gen: "/path/to/file_folder/"
+tools:
+fold_out:
+  raw_vcfs: '/path/to/file_folder/'
+  families: '/path/to/file_folder/'

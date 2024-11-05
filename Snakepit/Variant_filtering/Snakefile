@@ -1,0 +1,270 @@
+configfile: "config.yaml"
+
+raw_variants = config['resources']['raw_variants']
+ref_gen = config['resources']['ref_gen']
+raw_vcfs = config['fold_out']['raw_vcfs']
+bam_files = config['resources']['bam_files']
+bams = config['resources']['bams']
+variants = config['resources']['SNPs']
+coverage = config['fold_out']['coverage']
+filters = config['fold_out']['filters']
+
+chroms = list(range(1,9)) + list(range(10,16))
+
+rule all:
+    input:
+        raw_stats = expand(raw_vcfs + "pedigree_HiC_scaffold_{chrom}.filt.indels_norm.stats", chrom = chroms),
+        covs = expand(coverage + "{bam}/{chrm}_coverage.txt", bam = bams, chrm = chroms),
+        autos_stats = filters + "autosomes.stats",
+        filter_stats = filters + "autosomes_mask_DP_GQ_het_men.stats",
+        auto_filter_stats = expand(filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.stats", chrom = chroms)
+
+rule raw_indel_VCFs:
+    input:
+        vcf = raw_variants + "pedigree_HiC_scaffold_{chrom}.genotyped.vcf",
+        fasta = ref_gen + "consensus_wrapped_HiC.v2.fasta"
+    output:
+        vcf = raw_vcfs + "pedigree_HiC_scaffold_{chrom}.filt.indels_norm.vcf.gz",
+        index = raw_vcfs + "pedigree_HiC_scaffold_{chrom}.filt.indels_norm.vcf.gz.tbi",
+        stats = raw_vcfs + "pedigree_HiC_scaffold_{chrom}.filt.indels_norm.stats"
+    params:
+        view = r"""view -v indels --min-af 0.01 --max-af 0.99 -i 'INFO/AN==28 && INFO/QD>=2 && QUAL>=30 && INFO/FS<=200 && INFO/ReadPosRankSum>=-20'"""
+    threads: 4
+    resources:
+        mem_mb = 400,
+        walltime = '1h'
+    shell:
+        '''
+        bcftools norm -f {input.fasta} -m- {input.vcf} | bcftools {params.view} --threads {threads} -Oz -o {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule bam_coverage:
+    input:
+        bam = bam_files + "{bam}.markduplicates.bam"
+    output:
+        cov = coverage + "{bam}/{chrm}_coverage.txt"
+    params:
+        reg = '-r scaffold_{chrm}'
+    threads: 2
+    resources:
+        mem_mb = 150,
+        walltime = '10:00'
+    shell:
+        '''
+        samtools coverage {params.reg} {input.bam} > {output.cov} \n
+        '''
+
+rule vcf_prep:
+    input:
+        autos = variants + "autos.txt" #file generated with scripts/vcf_autosomes.sh
+    output:
+        conc_vcf = variants + "pedigree.snps.GT.vcf.gz",
+        conc_tbi = variants + "pedigree.snps.GT.vcf.gz.tbi",
+        conc_stats = variants + "pedigree.snps.GT.stats",
+        filt_vcf = filters + "autosomes.vcf.gz",
+        filt_tbi = filters + "autosomes.vcf.gz.tbi",
+        filt_stats = filters + "autosomes.stats"
+    params:
+        out = "-Oz -o",
+        seg = '-e INFO/AF="1"' #only segregating sites
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools concat -f {input.autos} --threads {threads} {params.out} {output.conc_vcf} \n \
+        tabix -fp vcf {output.conc_vcf} \n \
+        bcftools stats {output.conc_vcf} > {output.conc_stats} \n \
+        bcftools view {output.conc_vcf} {params.seg} --threads {threads} {params.out} {output.filt_vcf} \n \
+        tabix -fp vcf {output.filt_vcf} \n \
+        bcftools stats {output.filt_vcf} > {output.filt_stats} \n
+        '''
+
+rule mask_filter:
+    input:
+        vcf = rules.vcf_prep.output.filt_vcf,
+        bed = variants + "masked.bed" #BED with repetitive regions
+    output:
+        vcf = filters + "autosomes_mask.vcf.gz",
+        tbi = filters + "autosomes_mask.vcf.gz.tbi",
+        stats = filters + "autosomes_mask.stats"
+    params:
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} -T ^{input.bed} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule dp_table:
+    input:
+        vcf = rules.mask_filter.output.vcf
+    output:
+        dp_tbl = filters + "autosomes_dp.table"
+    params:
+        query = r"""-f '%CHROM %POS [ %DP]\n'"""
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools query {params.query} {input.vcf} > {output.dp_tbl} \n
+        '''
+
+rule dp_filter:
+    input:
+        vcf = rules.mask_filter.output.vcf,
+        tbi = rules.mask_filter.output.tbi,
+        table = rules.dp_table.output.dp_tbl
+    output:
+        vcf_pre = filters + "DP/autosomes_mask_DP_sample_0.vcf.gz",
+        tbi_pre = filters + "DP/autosomes_mask_DP_sample_0.vcf.gz.tbi",
+        path = directory(filters + "DP"),
+        vcf_post = filters + "DP/autosomes_mask_DP_sample_14.vcf.gz",
+        tbi_post = filters + "DP/autosomes_mask_DP_sample_14.vcf.gz.tbi",
+        stats_post = filters + "DP/autosomes_mask_DP_sample_14.stats",
+        vcf = filters + "autosomes_mask_DP.vcf.gz",
+        tbi = filters + "autosomes_mask_DP.vcf.gz.tbi",
+        stats = filters + "autosomes_mask_DP.stats"
+    params:
+        samples = "14"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '1h'
+    script:
+        "scripts/DP.sh"
+
+rule gq_filter:
+    input:
+        vcf = rules.dp_filter.output.vcf
+    output:
+        vcf = filters + "autosomes_mark_DP_GQ.vcf.gz",
+        stats = filters + "autosomes_mark_DP_GQ.stats"
+    params:
+        exclude = r"""-e 'FMT/GQ < 30'""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} {params.exclude} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule het_filter:
+    input:
+        vcf = rules.gq_filter.output.vcf
+    output:
+        vcf_tags = filters + "autosomes_mask_DP_GQ_het_tags.vcf.gz",
+        vcf = filters + "autosomes_mask_DP_GQ_het.vcf.gz",
+        stats = filters + "autosomes_mask_DP_GQ_het.stats"
+    params:
+        tags = "-- -t HWE,ExcHet",
+        out = "-Oz -o",
+        ExcHet = r"""-e 'INFO/ExcHet < 0.01'"""
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools +fill-tags {input.vcf} --threads {threads} {params.out} {output.vcf_tags} {params.tags} \n \
+        tabix -fp vcf {output.vcf_tags} \n \
+        bcftools view {output.vcf_tags} {params.ExcHet} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule men_filter:
+    input:
+        vcf = rules.het_filter.output.vcf,
+        ped = variants + "trios.ped" #.ped: tab-separated files for trioID, sampleID, fatherID, motherID, sex
+    output:
+        vcf = filters + "autosomes_mask_DP_GQ_het_men.vcf.gz",
+        stats = filters + "autosomes_mask_DP_GQ_het_men.stats"
+    params:
+        drop = "-m E",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools +mendelian2 {input.vcf} -P {input.ped} {params.drop} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule auto_split:
+    input:
+        vcf = rules.men_filter.output.vcf
+    output:
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men.vcf.gz",
+        stats = filters + "{chrom}/autosomes_mask_DP_GQ_het_men.stats"
+    params:
+        chrom = "scaffold_{chrom}"
+    threads: 2
+    resources:
+        mem_mb = 150,
+        walltime = '00:20'
+    shell:
+        '''
+        bcftools view {input.vcf} -r {params.chrom} --threads {threads} -Oz -o {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule snp_cluster_filter: #This rule requires the pysam environment
+    input:
+        vcf = rules.auto_split.output.vcf
+    output:
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster.vcf.gz",
+        stats = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster.stats"
+    threads: 1
+    resources:
+        mem_mb = 800,
+        walltime = '4h'
+    script:
+        "scripts/SNP_clusters.py"
+
+rule indel_filter: #This rule requires the pysam environment
+    input:
+        snp_vcf = rules.snp_cluster_filter.output.vcf,
+        indel_vcf = rules.raw_indel_VCFs.output.vcf
+    output:
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel.vcf.gz",
+        stats = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel.stats"
+    threads: 1
+    resources:
+        mem_mb = 800,
+        walltime = '4h'
+    script:
+        "scripts/Indels.py"
+
+rule chop_ends: #This rule requires the pysam environment
+    input:
+        vcf = rules.indel_filter.output.vcf,
+        fai = ref_gen + "consensus_wrapped_HiC.v2.fasta.fai"
+    output:
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz",
+        stats = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.stats"
+    threads: 1
+    resources:
+        mem_mb = 800,
+        walltime = '4h'
+    script:
+        "scripts/Chop_ends.py"

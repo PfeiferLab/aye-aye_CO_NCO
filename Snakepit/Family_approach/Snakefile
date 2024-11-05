@@ -1,0 +1,117 @@
+configfile: "config.yaml"
+
+raw_variants = config['resources']['raw_variants']
+filters = config['resources']['filters']
+samples = config['resources']['samples_fams']
+fams = config['resources']['families']
+phases = config['resources']['phases']
+families = config['fold_out']['families']
+
+chroms = list(range(1,9)) + list(range(10,16))
+offs = list(range(2,3)) #Need to be modified depending on the number of offspring
+
+rule all:
+    input:
+        supreads_stats = expand(families + "{chrom}/{sample}/{sample}_supreads.stats", chrom = chroms, sample = samples),
+        markers = expand(families + "{chrom}/{sample}/{phase}_phased_markers.txt", chrom = chroms, sample = samples, phase = phases),
+        clean_blocks = expand(families + "{chrom}/{sample}/{phase}_off{off}_ChPh.txt", chrom = chroms, sample = samples, phase = phases, off = offs)
+
+rule fam_split:
+    input:
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz"
+    output:
+        vcf = families + "{chrom}/{sample}/{sample}.vcf.gz",
+        stats = families + "{chrom}/{sample}/{sample}.stats"
+    params:
+        ped = lambda wildcards: fams[wildcards.sample],
+        no_fixed = r"""--min-af 0.01 --max-af 0.99""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} -s {params.ped} --threads {threads} | bcftools view {params.no_fixed} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule supreads_filter:
+    input:
+        vcf = rules.fam_split.output.vcf
+    output:
+        vcf = families + "{chrom}/{sample}/{sample}_supreads.vcf.gz",
+        stats = families + "{chrom}/{sample}/{sample}_supreads.stats"
+    params:
+        AB = """-i 'COUNT((GT="0/1" | GT="0|1" | GT="1|0") & (FMT/AD[:1] / FMT/DP < 0.25 | FMT/AD[:1] / FMT/DP > 0.75)) == 0'""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 600,
+        walltime = '2h'
+    shell:
+        '''
+        bcftools view {input.vcf} {params.AB} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule inf_markers:
+    input:
+        vcf = rules.supreads_filter.output.vcf
+    output:
+        vcf_pat = families + "{chrom}/{sample}/pat_inf_markers.vcf.gz",
+        stats_pat = families + "{chrom}/{sample}/pat_inf_markers.stats",
+        vcf_mat = families + "{chrom}/{sample}/mat_inf_markers.vcf.gz",
+        stats_mat = families + "{chrom}/{sample}/mat_inf_markers.stats",
+        txt_pat = families + "{chrom}/{sample}/pat_inf_markers.txt",
+        txt_mat = families + "{chrom}/{sample}/mat_inf_markers.txt"
+    params:
+        pat = r"""-i 'GT[1]="het"&&GT[0]="hom"'""",
+        out = "-Oz -o",
+        mat = r"""-i 'GT[0]="het"&&GT[1]="hom"'""",
+        query = r"""-f '%CHROM\t%POS\t%REF\t%ALT[\t%GT]\n'"""
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} --threads {threads} {params.pat} {params.out} {output.vcf_pat} \n \
+        bcftools view {input.vcf} --threads {threads} {params.mat} {params.out} {output.vcf_mat} \n \
+        tabix -fp vcf {output.vcf_pat} \n \
+        tabix -fp vcf {output.vcf_mat} \n \
+        bcftools stats {output.vcf_pat} > {output.stats_pat} \n \
+        bcftools stats {output.vcf_mat} > {output.stats_mat} \n \
+        bcftools query {params.query} {output.vcf_pat} > {output.txt_pat} \n \
+        bcftools query {params.query} {output.vcf_mat} > {output.txt_mat} \n
+        '''
+
+rule ph_events:
+    input:
+        markers = families + "{chrom}/{sample}/{phase}_inf_markers.txt"
+    output:
+        all_tsv = families + "{chrom}/{sample}/{phase}_phased_markers.txt"
+    params:
+        offs_tsv = families + "{chrom}/{sample}/{phase}_off"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    script:
+        "scripts/families.py"
+
+rule clean_blocks:
+    input:
+        markers = families + "{chrom}/{sample}/{phase}_off{off}_phased_markers.txt"
+    output:
+        #deleted_markers = families + "{chrom}/{sample}/{phase}_off{off}_deleted_markers.txt", #Can be created by uncommenting this line and the lines in Clean_blocks.py
+        clean_markers = families + "{chrom}/{sample}/{phase}_off{off}_clean_markers.txt",
+        snps = families + "{chrom}/{sample}/{phase}_off{off}_SNPs.txt",
+        ChPh = families + "{chrom}/{sample}/{phase}_off{off}_ChPh.txt"
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    script:
+        "scripts/Clean_blocks.py"

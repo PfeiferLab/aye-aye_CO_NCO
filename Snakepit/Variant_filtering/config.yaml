@@ -1,0 +1,11 @@
+resources:
+  ref_gen: "/path/to/file_folder/"
+  raw_variants: '/path/to/file_folder/'
+  bam_files: '/path/to/file_folder/'
+  bams: ["BAM1", "BAM2", "BAM3"]
+  SNPs: '/path/to/file_folder/'
+tools:
+fold_out:
+  raw_vcfs: '/path/to/file_folder/'
+  coverage: '/path/to/file_folder/'
+  filters: '/path/to/file_folder/'

@@ -1,0 +1,178 @@
+configfile: "config.yaml"
+
+filters = config['resources']['filters']
+samples = config['resources']['samples_peds']
+peds = config['resources']['pedigrees']
+pedigrees = config['fold_out']['pedigrees']
+
+chroms = list(range(1,9)) + list(range(10,16))
+
+rule all:
+    input:
+        ped_vcf = expand(pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het_F0_diff_partner_F2_hom.stats", chrom = chroms, sample = samples),
+        phased_markers = expand(pedigrees + "{chrom}/{sample}/phased_markers.txt", chrom = chroms, sample = samples),
+        clean_blocks = expand(pedigrees + "{chrom}/{sample}/ChPh", chrom = chroms, sample = samples)
+
+rule ped_split:
+    input:
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz"
+    output:
+        vcf = pedigrees + "{chrom}/{sample}/{sample}.vcf.gz",
+        stats = pedigrees + "{chrom}/{sample}/{sample}.stats"
+    params:
+        ped = lambda wildcards: peds[wildcards.sample],
+        no_fixed = r"""--min-af 0.01 --max-af 0.99""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} -s {params.ped} --threads {threads} | bcftools view {params.no_fixed} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule supreads_filter:
+    input:
+        vcf = rules.ped_split.output.vcf
+    output:
+        vcf = pedigrees + "{chrom}/{sample}/{sample}_supreads.vcf.gz",
+        stats = pedigrees + "{chrom}/{sample}/{sample}_supreads.stats"
+    params:
+        AB = """-i 'COUNT((GT="0/1" | GT="0|1" | GT="1|0") & (FMT/AD[:1] / FMT/DP < 0.25 | FMT/AD[:1] / FMT/DP > 0.75)) == 0'""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 600,
+        walltime = '2h'
+    shell:
+        '''
+        bcftools view {input.vcf} {params.AB} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule ped_F1_het:
+    input:
+        vcf = rules.supreads_filter.output.vcf
+    output:
+        vcf = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het.vcf.gz",
+        stats = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het.stats"
+    params:
+        het = r"""-i 'GT[2]="het"'""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} {params.het} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+rule ped_F0_diff:
+    input:
+        vcf = rules.ped_F1_het.output.vcf
+    output:
+        vcf = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het_F0_diff.vcf.gz",
+        stats = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het_F0_diff.stats"
+    params:
+        discrepant1 = r"""-i 'GT[0]="het"&&GT[1]="hom"'""",
+        uvcf = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het_F0_diff.vcf",
+        out = "-Oz -o",
+        discrepant2 = r"""-i 'GT[0]="hom"&&GT[1]="het"'""",
+        discrepant3 = r"""-i 'GT[0]="RR"&&GT[1]="AA"'""",
+        discrepant4= r"""-i 'GT[0]="AA"&&GT[1]="RR"'"""
+    threads: 2
+    resources:
+        mem_mb = 600,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} --threads {threads} {params.discrepant1} > {params.uvcf} \n \
+        bcftools view -H {input.vcf} --threads {threads} {params.discrepant2} >> {params.uvcf} \n \
+        bcftools view -H {input.vcf} --threads {threads} {params.discrepant3} >> {params.uvcf} \n \
+        bcftools view -H {input.vcf} --threads {threads} {params.discrepant4} >> {params.uvcf} \n \
+        bcftools sort {params.uvcf} | bgzip -@ {threads} -c > {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n \
+        rm {params.uvcf} \n
+        '''
+
+rule partner_F2_hom_ped:
+    input:
+        vcf = rules.ped_F0_diff.output.vcf
+    output:
+        vcf = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het_F0_diff_partner_F2_hom.vcf.gz",
+        stats = pedigrees + "{chrom}/{sample}/{sample}_supreads_F1_het_F0_diff_partner_F2_hom.stats"
+    params:
+        hom = r"""-i 'GT[3]="hom" || GT[4]="hom"'""",
+        out = "-Oz -o"
+    threads: 2
+    resources:
+        mem_mb = 600,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools view {input.vcf} {params.hom} --threads {threads} {params.out} {output.vcf} \n \
+        tabix -fp vcf {output.vcf} \n \
+        bcftools stats {output.vcf} > {output.stats} \n
+        '''
+
+## For the next rule it is essential the order of the samples in the vcf to be mother, father, sample, partner, offspring
+
+rule phase_script:
+    input:
+        vcf = rules.partner_F2_hom_ped.output.vcf
+    output:
+        geno = pedigrees + "{chrom}/{sample}/unphased.genotypes",
+        sort_geno = pedigrees + "{chrom}/{sample}/unphased.sorted.genotypes",
+        haploblocks = pedigrees + "{chrom}/{sample}/haploblocks.txt"
+    params:
+        GT = r"""-f '[%GT\t]%CHROM\t%POS\n'""",
+        tr = r""""{/,|}" "," """,
+        awk = r"""awk '{if ($1 == "1,1" || $2 == "0,0") {print $1"\t"$2"\t1,0\t"$4"\t"$5"\t"$6"\t"$7} else print $0}' | awk '{if ($4 == "0,0" && $5 == "0,1") {print $1"\t"$2"\t"$3"\t"$4"\t1,0\t"$6"\t"$7} else print $0}'""",
+        sep = r"""tr "," "\t" |""",
+        gmat = r"""awk '{if ($5 == $9) {print "gmat"} else print "gpat"}'""",
+        grep = r"""grep -v "#" """
+    threads: 2
+    resources:
+        mem_mb = 200,
+        walltime = '20:00'
+    shell:
+        '''
+        bcftools query {params.GT} {input.vcf} | tr {params.tr} > {output.geno} \n \
+        cat {output.geno} | {params.awk} > {output.sort_geno} \n \
+        paste <(cat {output.sort_geno} | {params.sep} {params.gmat}) <(zcat {input.vcf} | {params.grep}) > {output.haploblocks} \n
+        '''
+
+rule ph_events:
+    input:
+        markers = rules.phase_script.output.haploblocks
+    output:
+        all_tsv = pedigrees + "{chrom}/{sample}/phased_markers.txt",
+        #false_tsv = pedigrees + "{chrom}/{sample}/change_phase_markers.txt" #Can be created by uncommenting this line and the lines in pedigrees.py
+    threads: 2
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    script:
+        "scripts/pedigrees.py"
+
+rule clean_blocks:
+    input:
+        markers = rules.ph_events.output.all_tsv
+    output:
+        #deleted_markers = pedigrees + "{chrom}/{sample}/deleted_markers.txt", #Can be created by uncommenting this line and the lines in Clean_blocks.py
+        clean_markers = pedigrees + "{chrom}/{sample}/clean_markers.txt",
+        snps = pedigrees + "{chrom}/{sample}/SNPs.txt",
+        ChPh = pedigrees + "{chrom}/{sample}/ChPh.txt"
+    resources:
+        mem_mb = 400,
+        walltime = '20:00'
+    script:
+        "scripts/Clean_blocks.py"

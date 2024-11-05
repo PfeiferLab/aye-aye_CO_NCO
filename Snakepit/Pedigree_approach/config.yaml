@@ -1,0 +1,11 @@
+resources:
+  filters: '/path/to/file_folder/'
+  samples_peds:
+    - Sample1
+    - Sample2
+  pedigrees: #need to be provided in this order: mother,father,sample,partner,child
+    Sample1: 'mother,father,sample,partner,child'
+    Sample2: 'mother,father,sample,partner,child'
+tools:
+fold_out:
+  pedigrees: '/path/to/file_folder/'
