@@ -123,11 +123,9 @@ rule partner_F2_hom_ped:
         bcftools stats {output.vcf} > {output.stats} \n
         '''
 
-## For the next rule it is essential the order of the samples in the vcf to be mother, father, sample, partner, offspring
-
 rule phase_script:
     input:
-        vcf = rules.partner_F2_hom_ped.output.vcf
+        vcf = rules.partner_F2_hom_ped.output.vcf #the order of the samples in the VCF needs to be mother, father, sample, partner, offspring
     output:
         geno = pedigrees + "{chrom}/{sample}/unphased.genotypes",
         sort_geno = pedigrees + "{chrom}/{sample}/unphased.sorted.genotypes",
@@ -155,7 +153,7 @@ rule ph_events:
         markers = rules.phase_script.output.haploblocks
     output:
         all_tsv = pedigrees + "{chrom}/{sample}/phased_markers.txt",
-        #false_tsv = pedigrees + "{chrom}/{sample}/change_phase_markers.txt" #Can be created by uncommenting this line and the lines in pedigrees.py
+        #false_tsv = pedigrees + "{chrom}/{sample}/change_phase_markers.txt" #Can be created by uncommenting this line and the lines in script pedigrees.py
     threads: 2
     resources:
         mem_mb = 400,

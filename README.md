@@ -31,15 +31,23 @@ The [variant filtering workflow](Snakepit/Variant_filtering/) defines how the au
 
 #### Pedigree approach
 
-Recombination events, crossover (`CO`) and noncrossover (`NCOs`) are identified from the high-confidence `SNPs` detected above by applying a [pedigree approach](Snakepit/Pedigree_approach/) with the following rules:
+Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [pedigree approach](Snakepit/Pedigree_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Weiss et al. 2024](https://academic.oup.com/gbe/article/16/1/evad223/7459156)) with the following rules:
 
 - `ped_split`, generates the six three-generation pedigree-specific  sets of segregating `SNPs` with `bcftools view`.
 - `supreads_filter`, keeps only the positions supported by more than `25%` but less than `75%` of the mapped reads with `bcftools view`.
 - `ped_F1_het`, keeps only the positions where the `F1` individual is heterozygous, with `bcftools view`
 - `ped_F0_diff`, keeps only the positions where the `F0` individuals (parents) exhibited non-identical genotypes, with a combination of `bcftools view` and `bcftools sort`.
-- `partner_F2_hom_ped`, keeps only the positions where either the F1's partner or their joint F2 offspring was homozygous
+- `partner_F2_hom_ped`, keeps only the positions where either the `F1`'s partner or their joint `F2` offspring was homozygous. The variants resulting from this step are considered phase-informative markers (see Figure underneath this list).
+- `phase_script`, phases the phase-informative markers. This is, it indicates whether the variants have a grandpaternal (`gpat`) or grandmaternal (`gpat`) origin. A combination of `bcftools query` and `bash` commands indentify the origin and formats the calls.
+- `ph_events`, simplifies and formats the output indicating the phase (`gpat` or `gpat`), the coordinates, the `REF`/`ALT` alleles and the genotype of each member of the pedigree for the phase-informative markers.
+    - The custom script [`pedigrees.py`](Snakepit/Pedigree_approach/scripts/pedigrees.py), developed with `pandas` is used for such purpose.
+- `clean_blocks`, detects breakpoints (changes of phase) in the phase-informative markers, removes short regions (`5 Kb`) with multiple changes of phase, identifies breakpoints encompassing more than one phase-informative marker, re-phases the markers and midpoint values and resolution of the events.
+    - The custom script [`Clean_blocks.py`](Snakepit/Pedigree_approach/scripts/Clean_blocks.py), developed with `pandas` is used for such purpose.
+    - The resulting filtered files are then subject to a visual exploration to identify crossover (`CO`) and noncrossover (`NCOs`) events.
 
-<img src="Images/Pedigree.png" alt="Schematic of the workflow" width="250">
+<div align="center">
+  <img src="Images/Pedigree.png" alt="Schematic of the workflow" width="250">
+</div>
 
 #### Family approach (*under active development*)
 
