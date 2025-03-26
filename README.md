@@ -9,3 +9,5 @@ The following folders contain the workflows for the three main processes describ
 - [Variant filtering](Snakepit/Variant_filtering/)
 - [Pedigree approach](Snakepit/Pedigree_approach/)
 - [Family approach](Snakepit/Family_approach/)
+
+Small note to confirm that the VSCode to Github connection is sound.
