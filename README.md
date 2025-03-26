@@ -39,7 +39,7 @@ Recombination events, crossover (`CO`) and noncrossover (`NCOs`) are identified 
 - `ped_F0_diff`, keeps only the positions where the `F0` individuals (parents) exhibited non-identical genotypes, with a combination of `bcftools view` and `bcftools sort`.
 - `partner_F2_hom_ped`, keeps only the positions where either the F1's partner or their joint F2 offspring was homozygous
 
-![Schematic of the workflow](Images/Pedigree.png).
+<img src="Images/Pedigree.png" alt="Schematic of the workflow" width="250">
 
 #### Family approach (*under active development*)
 
