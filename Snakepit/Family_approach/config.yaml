@@ -5,8 +5,8 @@ resources:
     - Sample1
     - Sample2
   families: # The order will determine the VCF file
-    Sample1: 'mother,father,templateoffspring,offspring2,offspring3'
-    Sample2: 'mother,father,templateoffspring,offspring2,offspring3,offspring4'
+    Sample1: 'mother,father,template,offspring,offspring2,offspring3'
+    Sample2: 'mother,father,template,offspring,offspring2,offspring3,offspring4'
   phases: ["mat", "pat"]
   ref_gen: "/path/to/file_folder/"
 tools:

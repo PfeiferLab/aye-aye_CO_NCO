@@ -29,11 +29,11 @@ The [variant filtering workflow](Snakepit/Variant_filtering/) defines how the au
 - `chop_ends`, removes variants located within `2 Mb` from the autosome ends.
     - The custom script [`Chop_ends.py`](Snakepit/Variant_filtering/scripts/Chop_ends.py), developed with `pysam` is used for such purpose.
 
-#### Pedigree approach
+#### Pedigree-based approach
 
-Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [pedigree approach](Snakepit/Pedigree_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Weiss et al. 2024](https://academic.oup.com/gbe/article/16/1/evad223/7459156)) with the following rules:
+Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [pedigree-based approach](Snakepit/Pedigree_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Weiss et al. 2024](https://academic.oup.com/gbe/article/16/1/evad223/7459156)) with the following rules:
 
-- `ped_split`, generates the six three-generation pedigree-specific  sets of segregating `SNPs` with `bcftools view`.
+- `ped_split`, generates the six three-generation pedigree-specific sets of segregating `SNPs` with `bcftools view`.
 - `supreads_filter`, keeps only the positions supported by more than `25%` but less than `75%` of the mapped reads with `bcftools view`.
 - `ped_F1_het`, keeps only the positions where the `F1` individual is heterozygous, with `bcftools view`
 - `ped_F0_diff`, keeps only the positions where the `F0` individuals (parents) exhibited non-identical genotypes, with a combination of `bcftools view` and `bcftools sort`.
@@ -41,17 +41,30 @@ Phase-informative markers are identified from the high-confidence `SNPs` detecte
 - `phase_script`, phases the phase-informative markers. This is, it indicates whether the variants have a grandpaternal (`gpat`) or grandmaternal (`gpat`) origin. A combination of `bcftools query` and `bash` commands indentify the origin and formats the calls.
 - `ph_events`, simplifies and formats the output indicating the phase (`gpat` or `gpat`), the coordinates, the `REF`/`ALT` alleles and the genotype of each member of the pedigree for the phase-informative markers.
     - The custom script [`pedigrees.py`](Snakepit/Pedigree_approach/scripts/pedigrees.py), developed with `pandas` is used for such purpose.
-- `clean_blocks`, detects breakpoints (changes of phase) in the phase-informative markers, removes short regions (`5 Kb`) with multiple changes of phase, identifies breakpoints encompassing more than one phase-informative marker, re-phases the markers and midpoint values and resolution of the events.
+- `clean_blocks`, detects breakpoints (changes of phase) in the phase-informative markers, removes short regions (`5 Kb`) with multiple changes of phase, identifies breakpoints encompassing more than one phase-informative marker, re-phases the markers and midpoint values and resolution tract of the events.
     - The custom script [`Clean_blocks.py`](Snakepit/Pedigree_approach/scripts/Clean_blocks.py), developed with `pandas` is used for such purpose.
     - The resulting filtered files are then subject to a visual exploration to identify crossover (`CO`) and noncrossover (`NCOs`) events.
 
 <div align="center">
-  <img src="Images/Pedigree.png" alt="Schematic of the workflow" width="250">
+  <img src="Images/Pedigree.png" alt="Schematic of the pedigree-based workflow" width="250">
 </div>
 
-#### Family approach (*under active development*)
+#### Family-based approach
 
-- The detection of recombination events is described using the [family approach](Snakepit/Family_approach/)
+Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [family-based approach](Snakepit/Family_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Lloret-Villas et al. 2025](https://www.biorxiv.org/content/10.1101/2024.11.08.622675v1), following the methodology outlined in [Coop et al. (2008)](https://pubmed.ncbi.nlm.nih.gov/18239090/)) with the following rules:
+
+- `fam_split`, generates the three two-generation nuclear family-specific sets of segregating `SNPs` with `bcftools view`.
+- `supreads_filter`, keeps only the positions supported by more than `25%` but less than `75%` of the mapped reads with `bcftools view`.
+- `inf_markers`, identifies and separates maternally phase-informative markers (at which the dam was heterozygous and the sire homozygous) and paternally phase-informative markers (at which the sire was heterozygous and the dam homozygous) with a combination of `bcftools view` and `bcftools query`.
+- `ph_events`, simplifies and conditionally formats the output depending on the number of offspring. It indicates the origin of transmitted alleles (`maternal` or `paternal`), the coordinates, the `REF`/`ALT` alleles and the genotype of each member of the family for the phase-informative markers, as well as the phase of the offspring in comparison to the template offspring.
+    - The custom script [`families.py`](Snakepit/Family_approach/scripts/families.py), developed with `pandas` is used for such purpose.
+- `clean_blocks`, detects breakpoints (changes of phase) in the phase-informative markers, removes short regions (`5 Kb`) with multiple changes of phase, identifies breakpoints encompassing more than one phase-informative marker, re-phases the markers and midpoint values and resolution tract of the events.
+    - The custom script [`Clean_blocks.py`](Snakepit/Family_approach/scripts/Clean_blocks.py), developed with `pandas` is used for such purpose.
+    - The resulting filtered files are then subject to a visual exploration to identify crossover (`CO`) and noncrossover (`NCOs`) events.
+
+<div align="center">
+  <img src="Images/Family.png" alt="Schematic of the family-based workflow" width="250">
+</div>
 
 #### `Snakemake` execution
 
@@ -60,4 +73,12 @@ Each of the above folder consists of:
 - a `config.yaml` file including the paths and glabl variables, which should be costumized by the user
 - a `snake_submit.sh` execution file that triggers the `SLURM` execution of all the rules indicated in the `Snakefile` with the parameters included in the `config.yaml`. Provided the same file names, this execution can be triggered with `snakemake -s Snakefile --configfile config.yaml --profile "slurm" --nolock --rerun-incomplete`.
 
-#### Software / Tools (*under active development*)
+#### Software / Tools
+
+All the software and tools used during for the development of the `Snakemake` workflow and accompanying scripts can be downloaded and installed via [`conda`/`mamba`](https://anaconda.org/anaconda/conda). These are the links to package recipes and versions used:
+
+- [`pysam (v.7.32.4)`](https://anaconda.org/bioconda/snakemake)
+- [`bcftools (v.1.19)`](https://anaconda.org/bioconda/bcftools)
+- [`samtools (v.1.19)`](https://anaconda.org/bioconda/samtools)
+- [`pysam (v.0.22.1`](https://anaconda.org/bioconda/pysam)
+- [`pandas (v.2.2.0)`](https://anaconda.org/conda-forge/pandas)

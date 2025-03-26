@@ -2,16 +2,16 @@ input_file = snakemake.input.markers
 
 import pandas as pd
 
-# Define different sets of column names based on the number of columns
+#different sets of column names based on the number of columns
 column_names_2 = ["Scaffold","POS","Reference","Alternate","Maternal","Paternal","Offspring1","Offspring2"]
 column_names_3 = ["Scaffold","POS","Reference","Alternate","Maternal","Paternal","Offspring1","Offspring2","Offspring3"]
 column_names_4 = ["Scaffold","POS","Reference","Alternate","Maternal","Paternal","Offspring1","Offspring2","Offspring3","Offspring4"]
 
-# Creating a function to assign the column names
+#function to assign column names...
 def import_df(file):
     df = pd.read_csv(input_file, sep='\t', header=None)
     
-    # Conditionally assign column names based on the number of columns
+    #... based on the number of columns
     if len(df.columns) == 8:
         df.columns = column_names_2
     elif len(df.columns) == 9:
@@ -22,10 +22,10 @@ def import_df(file):
 
 df = import_df(input_file)
 
-# Replacing pipes by slashes
+#replacing pipes by slashes
 df.replace({'0|0': '0/0', '0|1': '0/1', '1|1': '1/1'}, inplace=True) 
 
-# Assigning transmitted alleles
+#assigning transmitted alleles
 condition_mat = ((df['Paternal'] == '0/0') & (df['Offspring1'] == '0/0') | (df['Paternal'] == '1/1') & (df['Offspring1'] == '0/1'))
 condition_pat = ((df['Maternal'] == '0/0') & (df['Offspring1'] == '0/0') | (df['Maternal'] == '1/1') & (df['Offspring1'] == '0/1'))
 
@@ -36,10 +36,10 @@ elif df.iloc[0]['Paternal'] == '0/1':
     df.loc[condition_pat, 'PatAllOff1'] = 'A'
     df.loc[~condition_pat, 'PatAllOff1'] = 'B'
 
-# Define the shared columns to be printed
+#shared columns to be printed
 shared_columns = ['Scaffold', 'POS', 'Reference', 'Alternate', 'Maternal', 'Paternal', 'Offspring1']
 
-#Stating whether the other offspring are in phase (SP) or using the other phase (OP) with offspring 1
+#stating whether the other offspring are in phase (SP) or using the other phase (OP) compare to template offspring
 for n in range(2, len(df.columns) - 6):
     offspring_column = f"Offspring{n}"
     phase_off_column = f"PhaseOff{n}"
@@ -54,4 +54,4 @@ for n in range(2, len(df.columns) - 6):
     output_file = f"{snakemake.params.offs_tsv}{n}_phased_markers.txt"
     df_filtered.to_csv(output_file, sep='\t', header=True, index=False)
 
-df.to_csv(snakemake.output.all_tsv, sep='\t', header=True, index=False) # Writing the results to a tsv file
+df.to_csv(snakemake.output.all_tsv, sep='\t', header=True, index=False)

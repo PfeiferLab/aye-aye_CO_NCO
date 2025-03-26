@@ -28,7 +28,7 @@ def remove_close_rows(df, threshold=5000, min_points=4):
         if len(window) >= min_points:
             indices_to_remove.extend(df[(df['POS'] >= current_position) & (df['POS'] <= current_position + threshold)].index)
     
-    #detect i remove rows
+    #detect and remove rows
     deleted_rows = df.loc[indices_to_remove]
     df_cleaned = df.drop(index=indices_to_remove)
 
@@ -73,7 +73,7 @@ if not df_ChPh_trim.empty:
 
 df_ChPh_trim = df_ChPh_trim[(df_ChPh_trim["InPhaseBefore"] == False) | (df_ChPh_trim["InPhaseAfter"] == False)]
 
-#midpoint value is calculated
+#midpoint values are calculated
 df_MidPoint = df_ChPh_trim.copy()
 df_MidPoint = df_MidPoint.reset_index(drop=True)
 
@@ -84,4 +84,4 @@ df_MidPoint['ResMidPoint'] = df_MidPoint.apply(
 )
 df_MidPoint['ResMidPoint'] = df_MidPoint['ResMidPoint'].bfill()
 
-df_MidPoint.to_csv(snakemake.output.ChPh, sep='\t', header=True, index=False) #Writing the results to a tsv file
+df_MidPoint.to_csv(snakemake.output.ChPh, sep='\t', header=True, index=False)
