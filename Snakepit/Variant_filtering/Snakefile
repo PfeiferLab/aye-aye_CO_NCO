@@ -136,7 +136,7 @@ rule dp_filter:
         tbi = filters + "autosomes_mask_DP.vcf.gz.tbi",
         stats = filters + "autosomes_mask_DP.stats"
     params:
-        samples = "14"
+        samples = "14" #This value, and the numbers in output/*_post need to be adapted to the number of samples
     threads: 2
     resources:
         mem_mb = 400,
@@ -174,7 +174,7 @@ rule het_filter:
     params:
         tags = "-- -t HWE,ExcHet",
         out = "-Oz -o",
-        ExcHet = r"""-e 'INFO/ExcHet < 0.01'"""
+        ExcHet = r"""'INFO/ExcHet < 0.01'"""
     threads: 2
     resources:
         mem_mb = 400,
@@ -228,7 +228,7 @@ rule auto_split:
         bcftools stats {output.vcf} > {output.stats} \n
         '''
 
-rule snp_cluster_filter: #This rule requires the pysam environment
+rule snp_cluster_filter:
     input:
         vcf = rules.auto_split.output.vcf
     output:
@@ -241,7 +241,7 @@ rule snp_cluster_filter: #This rule requires the pysam environment
     script:
         "scripts/SNP_clusters.py"
 
-rule indel_filter: #This rule requires the pysam environment
+rule indel_filter:
     input:
         snp_vcf = rules.snp_cluster_filter.output.vcf,
         indel_vcf = rules.raw_indel_VCFs.output.vcf
@@ -255,10 +255,10 @@ rule indel_filter: #This rule requires the pysam environment
     script:
         "scripts/Indels.py"
 
-rule chop_ends: #This rule requires the pysam environment
+rule chop_ends:
     input:
         vcf = rules.indel_filter.output.vcf,
-        fai = ref_gen + "consensus_wrapped_HiC.v2.fasta.fai"
+        fai = ref_gen + "file.fasta.fai"
     output:
         vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz",
         stats = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.stats"
