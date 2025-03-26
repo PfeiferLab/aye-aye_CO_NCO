@@ -9,7 +9,7 @@ variants = config['resources']['SNPs']
 coverage = config['fold_out']['coverage']
 filters = config['fold_out']['filters']
 
-chroms = list(range(1,9)) + list(range(10,16))
+chroms = list(range(1,9)) + list(range(10,16)) #autosomes
 
 rule all:
     input:

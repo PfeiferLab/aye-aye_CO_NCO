@@ -29,9 +29,17 @@ The [variant filtering workflow](Snakepit/Variant_filtering/) defines how the au
 - `chop_ends`, removes variants located within `2 Mb` from the autosome ends.
     - The custom script [`Chop_ends.py`](Snakepit/Variant_filtering/scripts/Chop_ends.py), developed with `pysam` is used for such purpose.
 
-#### Pedigree approach (*under active development*)
+#### Pedigree approach
 
-- The detection of recombination using the [pedigree approach](Snakepit/Pedigree_approach/)
+Recombination events, crossover (`CO`) and noncrossover (`NCOs`) are identified from the high-confidence `SNPs` detected above by applying a [pedigree approach](Snakepit/Pedigree_approach/) with the following rules:
+
+- `ped_split`, generates the six three-generation pedigree-specific  sets of segregating `SNPs` with `bcftools view`.
+- `supreads_filter`, keeps only the positions supported by more than `25%` but less than `75%` of the mapped reads with `bcftools view`.
+- `ped_F1_het`, keeps only the positions where the `F1` individual is heterozygous, with `bcftools view`
+- `ped_F0_diff`, keeps only the positions where the `F0` individuals (parents) exhibited non-identical genotypes, with a combination of `bcftools view` and `bcftools sort`.
+- `partner_F2_hom_ped`, keeps only the positions where either the F1's partner or their joint F2 offspring was homozygous
+
+![Schematic of the workflow](Images/Pedigree.png).
 
 #### Family approach (*under active development*)
 
@@ -43,3 +51,5 @@ Each of the above folder consists of:
 - a `Snakefile` with a concatenation of the `Snakemake` rules, the specific parameters and computing resources required
 - a `config.yaml` file including the paths and glabl variables, which should be costumized by the user
 - a `snake_submit.sh` execution file that triggers the `SLURM` execution of all the rules indicated in the `Snakefile` with the parameters included in the `config.yaml`. Provided the same file names, this execution can be triggered with `snakemake -s Snakefile --configfile config.yaml --profile "slurm" --nolock --rerun-incomplete`.
+
+#### Software / Tools (*under active development*)

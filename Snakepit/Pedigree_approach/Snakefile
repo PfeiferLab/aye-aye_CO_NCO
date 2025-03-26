@@ -5,7 +5,7 @@ samples = config['resources']['samples_peds']
 peds = config['resources']['pedigrees']
 pedigrees = config['fold_out']['pedigrees']
 
-chroms = list(range(1,9)) + list(range(10,16))
+chroms = list(range(1,9)) + list(range(10,16)) #autosomes
 
 rule all:
     input:
@@ -15,7 +15,7 @@ rule all:
 
 rule ped_split:
     input:
-        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz"
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz" #This is the output of the Variant_filtering workflow
     output:
         vcf = pedigrees + "{chrom}/{sample}/{sample}.vcf.gz",
         stats = pedigrees + "{chrom}/{sample}/{sample}.stats"

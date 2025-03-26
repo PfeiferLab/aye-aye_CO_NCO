@@ -7,7 +7,7 @@ fams = config['resources']['families']
 phases = config['resources']['phases']
 families = config['fold_out']['families']
 
-chroms = list(range(1,9)) + list(range(10,16))
+chroms = list(range(1,9)) + list(range(10,16)) #autosomes
 offs = list(range(2,3)) #Need to be modified depending on the number of offspring
 
 rule all:
@@ -18,7 +18,7 @@ rule all:
 
 rule fam_split:
     input:
-        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz"
+        vcf = filters + "{chrom}/autosomes_mask_DP_GQ_het_men_no_SNPcluster_indel_ends.vcf.gz" #This is the output of the Variant_filtering workflow
     output:
         vcf = families + "{chrom}/{sample}/{sample}.vcf.gz",
         stats = families + "{chrom}/{sample}/{sample}.stats"
