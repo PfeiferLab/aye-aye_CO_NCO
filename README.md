@@ -31,7 +31,7 @@ The [variant filtering workflow](Snakepit/Variant_filtering/) defines how the au
 
 #### Pedigree-based approach
 
-Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [pedigree-based approach](Snakepit/Pedigree_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Weiss et al. 2024](https://academic.oup.com/gbe/article/16/1/evad223/7459156)) with the following rules:
+Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [pedigree-based approach](Snakepit/Pedigree_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Weiss *et al.* (2024)](https://academic.oup.com/gbe/article/16/1/evad223/7459156)) with the following rules:
 
 - `ped_split`, generates the six three-generation pedigree-specific sets of segregating `SNPs` with `bcftools view`.
 - `supreads_filter`, keeps only the positions supported by more than `25%` but less than `75%` of the mapped reads with `bcftools view`.
@@ -51,7 +51,7 @@ Phase-informative markers are identified from the high-confidence `SNPs` detecte
 
 #### Family-based approach
 
-Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [family-based approach](Snakepit/Family_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Lloret-Villas et al. 2025](https://www.biorxiv.org/content/10.1101/2024.11.08.622675v1), following the methodology outlined in [Coop et al. (2008)](https://pubmed.ncbi.nlm.nih.gov/18239090/)) with the following rules:
+Phase-informative markers are identified from the high-confidence `SNPs` detected above by applying a [family-based approach](Snakepit/Family_approach/) (for a schematic of the workflow, see the Figure below, included in [Versoza, Lloret-Villas *et al.* (2025)](https://www.biorxiv.org/content/10.1101/2024.11.08.622675v1), following the methodology outlined in [Coop *et al.* (2008)](https://pubmed.ncbi.nlm.nih.gov/18239090/)) with the following rules:
 
 - `fam_split`, generates the three two-generation nuclear family-specific sets of segregating `SNPs` with `bcftools view`.
 - `supreads_filter`, keeps only the positions supported by more than `25%` but less than `75%` of the mapped reads with `bcftools view`.
@@ -63,7 +63,7 @@ Phase-informative markers are identified from the high-confidence `SNPs` detecte
     - The resulting filtered files are then subject to a visual exploration to identify crossover (`CO`) and noncrossover (`NCOs`) events.
 
 <div align="center">
-  <img src="Images/Family.png" alt="Schematic of the family-based workflow" width="250">
+  <img src="Images/Family.png" alt="Schematic of the family-based workflow" width="200">
 </div>
 
 #### `Snakemake` execution
@@ -71,14 +71,18 @@ Phase-informative markers are identified from the high-confidence `SNPs` detecte
 Each of the above folder consists of:
 - a `Snakefile` with a concatenation of the `Snakemake` rules, the specific parameters and computing resources required
 - a `config.yaml` file including the paths and glabl variables, which should be costumized by the user
-- a `snake_submit.sh` execution file that triggers the `SLURM` execution of all the rules indicated in the `Snakefile` with the parameters included in the `config.yaml`. Provided the same file names, this execution can be triggered with `snakemake -s Snakefile --configfile config.yaml --profile "slurm" --nolock --rerun-incomplete`.
+- a `snake_submit.sh` execution file that triggers the `SLURM` execution of all the rules indicated in the `Snakefile` with the parameters included in the `config.yaml`. Provided the same file names, this execution can be triggered with:
+
+```bash
+snakemake -s Snakefile --configfile config.yaml --profile "slurm" --nolock --rerun-incomplete
+```
 
 #### Software / Tools
 
 All the software and tools used during for the development of the `Snakemake` workflow and accompanying scripts can be downloaded and installed via [`conda`/`mamba`](https://anaconda.org/anaconda/conda). These are the links to package recipes and versions used:
 
-- [`pysam (v.7.32.4)`](https://anaconda.org/bioconda/snakemake)
+- [`Snakemake (v.7.32.4)`](https://anaconda.org/bioconda/snakemake)
 - [`bcftools (v.1.19)`](https://anaconda.org/bioconda/bcftools)
-- [`samtools (v.1.19)`](https://anaconda.org/bioconda/samtools)
+- [`Samtools (v.1.19)`](https://anaconda.org/bioconda/samtools)
 - [`pysam (v.0.22.1`](https://anaconda.org/bioconda/pysam)
 - [`pandas (v.2.2.0)`](https://anaconda.org/conda-forge/pandas)
