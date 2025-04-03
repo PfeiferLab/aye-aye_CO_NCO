@@ -10,11 +10,11 @@ Accompanying code for Cyril J. Versoza*, Audald Lloret-Villas*, Jeffrey D. Jense
 
 The [variant filtering workflow](Snakepit/Variant_filtering/) defines how the autosomal variants were processed and filtered to obtain a high-confidence `SNP` set. The rules included in this workflow are:
 
-- `raw_indel_VCFs`, retrieves the normalized `INDELs` from the raw genotyped `VCF` with `bcftools norm` and `bcftools view`.
+- `raw_indel_VCFs`, retrieves the normalized `INDELs` (this is, left-aligns the insertions and deletions for a consistent representation, and splits multiallelic sites into biallelic records) from the raw genotyped `VCF` with `bcftools norm` and `bcftools view`.
 - `bam_coverage`, calculates the sequencing coverage of the `BAM` files with `samtools coverage`.
-- `vcf_prep`, concatenates the genotyped autosomal `VCF` files with `bcftools concat` and calls segregating sites with `bcftools view`.
+- `vcf_prep`, concatenates the genotype per-chromosome autosomal `VCF` files with `bcftools concat` and calls segregating sites with `bcftools view`.
     - The custom script [`vcf_autosomes.sh`](Snakepit/Variant_filtering/scripts/vcf_autosomes.sh) is used to create the list of autosomes required by `bcftools concat`.
-- `mask_filter`, provided a `.bed` file with coordinates, `bcftools view` is used to mask the `VCF` file.
+- `mask_filter`, provided a `.bed` file with the coordinates of repetitive regions, `bcftools view` is used to mask the `VCF` file.
 - `dp_table`, extracts the read depth (`DP`) in each position and formats the output as a table with `bcftools query`
 - `dp_filter`, filters out the variants that have a `DP` less than half or more than twice the average `DP` for that particular sample.
     - The custom script [`DP.sh`](Snakepit/Variant_filtering/scripts/DP.sh) uses `bash` code and `bcftools view` to perform such filtering.
@@ -68,7 +68,7 @@ Phase-informative markers are identified from the high-confidence `SNPs` detecte
 
 #### `Snakemake` execution
 
-Each of the above folder consists of:
+Each of the above folders consist of:
 - a `Snakefile` with a concatenation of the `Snakemake` rules, the specific parameters and computing resources required
 - a `config.yaml` file including the paths and glabl variables, which should be costumized by the user
 - a `snake_submit.sh` execution file that triggers the `SLURM` execution of all the rules indicated in the `Snakefile` with the parameters included in the `config.yaml`. Provided the same file names, this execution can be triggered with:
