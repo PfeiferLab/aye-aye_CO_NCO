@@ -22,7 +22,7 @@ The [variant filtering workflow](Snakepit/Variant_filtering/) defines how the au
 - `het_filter`, filters out the variants wih an excess of heterozygosity (defined as a `p-value` of `0.01`) with the `bcftools` plug-in `+fill-tags` and `bcftools view`.
 - `men_filter`, provded a `.ped` file with pedigree information, it filters out the variants that violate the patterns expected by Mendelian inheritance, with the `bcftools` plugin `+mendelian2`.
 - `auto_split`, splits the `VCF` files into autosome-specific `VCF` files, with `bcftools view`.
-- `snp_cluster_filter`, removes cluster of variants (defined as `≥ 3 SNPs` within a `10 bp` window)) from the autosomal `VCF` files.
+- `snp_cluster_filter`, removes cluster of variants (defined as `≥ 3 SNPs` within a `10 bp` window) from the autosomal `VCF` files.
     - The custom script [`SNP_clusters.py`](Snakepit/Variant_filtering/scripts/SNP_clusters.py), developed with `pysam` is used for such purpose.
 - `indel_filter`, removes variants located within `10 bp` of an insertion/deletion (`INDEL`).
     - The custom script [`Indels.py`](Snakepit/Variant_filtering/scripts/Indels.py), developed with `pysam` is used for such purpose.
