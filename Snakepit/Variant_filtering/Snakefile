@@ -174,7 +174,7 @@ rule het_filter:
     params:
         tags = "-- -t HWE,ExcHet",
         out = "-Oz -o",
-        ExcHet = r"""'INFO/ExcHet < 0.01'"""
+        ExcHet = r"""-e 'INFO/ExcHet < 0.01'""" #See fill-tags in https://samtools.github.io/bcftools/bcftools.html for clarification
     threads: 2
     resources:
         mem_mb = 400,
