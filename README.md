@@ -1,6 +1,6 @@
 ## A pedigree-based map of crossovers and non-crossovers in aye-ayes (*Daubentonia madagascariensis*)
 
-Accompanying code for Cyril J. Versoza*, Audald Lloret-Villas*, Jeffrey D. Jensen, Susanne P. Pfeifer. 2025. A pedigree-based map of crossovers and non-crossovers in aye-ayes (*Daubentonia madagascariensis*). [`BioRxiv`](https://www.biorxiv.org/content/10.1101/2024.11.08.622675).
+Accompanying code for Cyril J. Versoza*, Audald Lloret-Villas*, Jeffrey D. Jensen, Susanne P. Pfeifer. 2025. A pedigree-based map of crossovers and non-crossovers in aye-ayes (*Daubentonia madagascariensis*). [`Genome Biology and Evolution`, `evaf072`](https://doi.org/10.1093/gbe/evaf072).
 
 ### Code
 
