@@ -86,3 +86,7 @@ All the software and tools used during for the development of the `Snakemake` wo
 - [`Samtools (v.1.19)`](https://anaconda.org/bioconda/samtools)
 - [`pysam (v.0.22.1`](https://anaconda.org/bioconda/pysam)
 - [`pandas (v.2.2.0)`](https://anaconda.org/conda-forge/pandas)
+
+#### Example
+
+The [step-by-step document](Step-by-step.md) contains a well-commented example on how to call and implement the `Snakemake` pipelines to standard input files.
