@@ -4,7 +4,11 @@ Accompanying code for Cyril J. Versoza*, Audald Lloret-Villas*, Jeffrey D. Jense
 
 ### Code
 
-[`Snakemake`](https://snakemake.readthedocs.io/en/stable/) workflows are provided for the following processes described in the manuscript:
+[`Snakemake`](https://snakemake.readthedocs.io/en/stable/) workflows are provided for the three processes described in the manuscript: variant filtering, pedigre-based approach and family-based approach.
+
+#### `Snakemake` execution
+
+The [step-by-step document](Step-by-step.md) contains the relevant information to call and implement the `Snakemake` pipelines with standard input files.
 
 #### Variant filtering
 
@@ -66,17 +70,6 @@ Phase-informative markers are identified from the high-confidence `SNPs` detecte
   <img src="Images/Family.png" alt="Schematic of the family-based workflow" width="200">
 </div>
 
-#### `Snakemake` execution
-
-Each of the above folders consist of:
-- a `Snakefile` with a concatenation of the `Snakemake` rules, the specific parameters and computing resources required
-- a `config.yaml` file including the paths and glabl variables, which should be costumized by the user
-- a `snake_submit.sh` execution file that triggers the `SLURM` execution of all the rules indicated in the `Snakefile` with the parameters included in the `config.yaml`. Provided the same file names, this execution can be triggered with:
-
-```bash
-snakemake -s Snakefile --configfile config.yaml --profile "slurm" --nolock --rerun-incomplete
-```
-
 #### Software / Tools
 
 All the software and tools used during for the development of the `Snakemake` workflow and accompanying scripts can be downloaded and installed via [`conda`/`mamba`](https://anaconda.org/anaconda/conda). These are the links to package recipes and versions used:
@@ -86,7 +79,3 @@ All the software and tools used during for the development of the `Snakemake` wo
 - [`Samtools (v.1.19)`](https://anaconda.org/bioconda/samtools)
 - [`pysam (v.0.22.1`](https://anaconda.org/bioconda/pysam)
 - [`pandas (v.2.2.0)`](https://anaconda.org/conda-forge/pandas)
-
-#### Example
-
-The [step-by-step document](Step-by-step.md) contains a well-commented example on how to call and implement the `Snakemake` pipelines to standard input files.
