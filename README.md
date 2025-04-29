@@ -4,7 +4,7 @@ Accompanying code for Cyril J. Versoza*, Audald Lloret-Villas*, Jeffrey D. Jense
 
 ### Code
 
-[`Snakemake`](https://snakemake.readthedocs.io/en/stable/) workflows are provided for the three processes described in the manuscript: variant filtering, pedigre-based approach and family-based approach.
+[`Snakemake`](https://snakemake.readthedocs.io/en/stable/) workflows are provided for the three processes described in the manuscript and in the sections below: variant filtering, pedigree-based approach and family-based approach.
 
 #### `Snakemake` execution
 
